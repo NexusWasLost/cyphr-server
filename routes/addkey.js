@@ -1,9 +1,10 @@
 import { Hono } from "hono";
 import { neon } from "@neondatabase/serverless";
+import { encryptKey } from "../utils/encrypt.js";
 
 const addkey = new Hono();
 
-addkey.post("/add-service", async function(c){
+addkey.post("/add-key", async function(c){
     try{
         const { serviceName, apiKeyName, apiKeyValue } = await c.req.json();
 
@@ -14,6 +15,10 @@ addkey.post("/add-service", async function(c){
 
         const meta = c.get("meta");
         const sql = neon(c.env.DATABASE_URL);
+
+        //encrypt key before insert
+        const encryptedAPIKeyValue = await encryptKey(c, apiKeyValue);
+
         //insert user data
         await sql.query(`
             INSERT INTO users(user_id, user_email)
@@ -23,7 +28,7 @@ addkey.post("/add-service", async function(c){
         //insert api key data
         await sql.query(`
             INSERT INTO api_keys(user_id, key_name, encrypted_key, key_hint, service_name)
-            VALUES('${meta.uid}', '${apiKeyName}', '${apiKeyValue}', 'key_abbr', '${serviceName}');
+            VALUES('${meta.uid}', '${apiKeyName}', '${encryptedAPIKeyValue}', 'key_abbr', '${serviceName}');
         `);
 
         return c.json({message: "Message Got"}, 200);

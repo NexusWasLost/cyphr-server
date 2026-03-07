@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { authMiddleware } from "./middlewares/auth.js";
 
-import addkey from "./routes/addService.js";
+import addkey from "./routes/addkey.js";
 
 const app = new Hono();
 

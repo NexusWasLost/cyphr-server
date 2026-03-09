@@ -27,4 +27,28 @@ getkey.get("/get-key", async function (c) {
     }, 200);
 });
 
+getkey.get("/list-keys", async function(c){
+    const meta = c.get("meta");
+    if(!meta)
+        throw new HTTPException(401, { message: "User context not found (Unauthorized) !"});
+
+    const id = meta.uid;
+
+    const sql = neon(c.env.DATABASE_URL);
+    const data = await sql.query(`
+        SELECT key_id, key_name, key_hint, service_name
+        FROM api_keys WHERE user_id = $1`,
+        [id]
+    );
+
+    if(data.length === 0)
+        throw new HTTPException(404, { message: "No Keys Found" });
+
+    return c.json({
+        message: "Retrieve Success",
+        data: data
+    });
+
+});
+
 export default getkey;

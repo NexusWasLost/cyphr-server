@@ -1,12 +1,13 @@
+import { HTTPException } from "hono/http-exception";
 import { jwtVerify, createRemoteJWKSet } from "jose";
 
 export const authMiddleware = async function(c, next){
     const authHeader = c.req.header("Authorization");
 
     if(!authHeader || !authHeader.startsWith("Bearer ")){
-        return c.json({
-            message: "Missing Auth Header or invalid auth"
-        }, 401);
+        throw new HTTPException(401, {
+            message: "Missing Auth Header or invalid auth header"}
+        );
     }
 
     const token = authHeader.split(" ")[1];
@@ -30,13 +31,9 @@ export const authMiddleware = async function(c, next){
         await next();
     }
     catch(error){
-        console.log({
-            err: "JWT Verification Error",
-            err_msg: error
+        throw new HTTPException(401, {
+            message: "Authentication failed",
+            cause: error
         });
-
-        return c.json({
-            message: "Authentication failed"
-        }, 401);
     }
 }

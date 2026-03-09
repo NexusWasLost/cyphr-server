@@ -43,13 +43,8 @@ export const encryptKey = async function (c, key) {
         return encodeBase64(finalBytes);
     }
     catch (error) {
-        console.log({
-            err: "Encryption Error",
-            err_msg: error
-        });
+        throw new Error(`Encryption Error: ${ error.message }`);
     }
-
-    return null;
 }
 
 export const decryptKey = async function (c, encryptedKey) {
@@ -78,11 +73,6 @@ export const decryptKey = async function (c, encryptedKey) {
         return APIKey;
     }
     catch (error) {
-        console.log({
-            err: "Decryption Error",
-            err_msg: error
-        });
+        throw new Error(`Decryption Error: ${ error.message }`);
     }
-
-    return null;
 }

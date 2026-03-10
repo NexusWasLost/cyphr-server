@@ -9,7 +9,6 @@ const addkey = new Hono();
 addkey.post("/add-key", async function (c) {
     const { serviceName, apiKeyName, apiKeyValue } = await c.req.json();
 
-    console.log(serviceName, apiKeyName, apiKeyValue);
     if (!serviceName || !apiKeyName || !apiKeyValue) {
         throw new HTTPException(400, { message: "All fields must be provided" });
     }
@@ -40,6 +39,7 @@ addkey.post("/add-key", async function (c) {
     );
 
     return c.json({
+        success: true,
         message: "Key Added Successfully",
         data: {
             key_id: data[0].key_id,

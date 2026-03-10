@@ -5,6 +5,7 @@ import { errorHandler } from "./middlewares/error-handler.js";
 
 import addkey from "./routes/add-key.js";
 import getkey from "./routes/get-key.js";
+import delkey from "./routes/del-key.js";
 
 const app = new Hono();
 app.onError(errorHandler);
@@ -21,5 +22,6 @@ app.use("*", authMiddleware);
 
 app.route("/api", addkey);
 app.route("/api", getkey);
+app.route("/api", delkey);
 
 export default app;

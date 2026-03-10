@@ -5,8 +5,8 @@ import { HTTPException } from "hono/http-exception";
 
 const getkey = new Hono();
 
-getkey.get("/get-key", async function (c) {
-    const { keyId } = await c.req.json();
+getkey.get("/get-key/:key_id", async function (c) {
+    const keyId = c.req.param("key_id");
     if (!keyId)
         throw new HTTPException(400, { message: "Key Id not provided" });
 
@@ -22,6 +22,7 @@ getkey.get("/get-key", async function (c) {
     const decryptedKey = await decryptKey(c, data[0].encrypted_key);
 
     return c.json({
+        success: true,
         message: "Decryption Success",
         key: decryptedKey
     }, 200);
@@ -45,6 +46,7 @@ getkey.get("/list-keys", async function(c){
         throw new HTTPException(404, { message: "No Keys Found" });
 
     return c.json({
+        success: true,
         message: "Retrieve Success",
         data: data
     });

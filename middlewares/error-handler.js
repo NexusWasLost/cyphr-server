@@ -5,6 +5,7 @@ export const errorHandler = function (error, c) {
         console.error("[HTTP ERROR]: ", error);
 
         return c.json({
+            success: false,
             message: error.message || "A resource error has occured"
         }, error.status);
 
@@ -14,6 +15,7 @@ export const errorHandler = function (error, c) {
     console.error("[CRITICAL ERROR]: ", error);
 
     return c.json({
+        success: false,
         message: "An unexpected Error has occured"
     }, 500);
 }

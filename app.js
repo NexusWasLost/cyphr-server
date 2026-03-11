@@ -13,10 +13,9 @@ app.onError(errorHandler);
 
 app.use("*", cors({
     origin: [
-        "https://keevlt.pages.dev",
-        "http://localhost:5501"
+        "https://cyphr.pages.dev"
     ],
-    allowMethods: ["GET", "POST", "PUT", "DELETE"]
+    allowMethods: ["GET", "POST", "PATCH","DELETE"]
 }));
 
 app.use("*", authMiddleware);

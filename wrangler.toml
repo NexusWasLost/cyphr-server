@@ -1,3 +1,10 @@
 name = "cyphr-server"
 main = "app.js"
 compatibility_date = "2026-01-01"
+
+[observability]
+enabled = true
+
+[[kv_namespaces]]
+binding = "API_CACHE"
+id = "54a140da882b4b2391b14a2037d633b3"

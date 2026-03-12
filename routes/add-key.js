@@ -38,6 +38,8 @@ addkey.post("/add-key", async function (c) {
         [meta.uid, apiKeyName, encryptedAPIKeyValue, keyHint, serviceName]
     );
 
+    c.executionCtx.waitUntil(c.env.API_CACHE.delete(`keys:${meta.uid}`));
+
     return c.json({
         success: true,
         message: "Key Added Successfully",
@@ -45,7 +47,6 @@ addkey.post("/add-key", async function (c) {
             key_id: data[0].key_id,
             key_name: apiKeyName,
             key_hint: keyHint,
-            e_apikey: encryptedAPIKeyValue,
             service_name: serviceName
         }
     }, 200);

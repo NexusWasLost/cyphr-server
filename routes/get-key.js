@@ -15,6 +15,7 @@ getkey.get("/get-key/:key_id", async function (c) {
     const enc_key = await c.env.API_CACHE.get(`key_id:${keyId}`);
     if (enc_key) {
         const decryptedKey = await decryptKey(c, enc_key);
+        c.header("Cache-Control", "no-store");
         return c.json({
             success: true,
             message: "Decryption Success",
@@ -38,6 +39,7 @@ getkey.get("/get-key/:key_id", async function (c) {
 
     const decryptedKey = await decryptKey(c, data[0].encrypted_key);
 
+    c.header("Cache-Control", "no-store");
     return c.json({
         success: true,
         message: "Decryption Success",

@@ -34,30 +34,39 @@ export const authMiddleware = async function (c, next) {
     const token = authHeader.split(" ")[1];
 
     try {
-        // --- LAYER 1: RAM (The 0ms Path) ---
+        // CACHE LAYER 1: RAM
         if (MEMORY_CACHE_JWKS) {
-            const user = await verifyToken(c, token, MEMORY_CACHE_JWKS);
-            console.log("Memory Cache Hit");
-            c.set("meta", user);
-            return await next();
+            try {
+                const user = await verifyToken(c, token, MEMORY_CACHE_JWKS);
+                c.set("meta", user);
+                return await next();
+            }
+            catch (e) {
+                // Stale RAM? Clear it and move to KV/Fetch
+                MEMORY_CACHE_JWKS = null;
+            }
         }
 
-        // --- LAYER 2: KV (The ~15ms Path) ---
-        // 'json' type automatically handles parsing, which is faster/cleaner
+        // CACHE LAYER 2: KV Cache
         const kvJWKS = await c.env.API_CACHE.get("JWKS", "json");
         if (kvJWKS) {
-            MEMORY_CACHE_JWKS = kvJWKS; // Populate RAM for next request
-            const user = await verifyToken(c, token, kvJWKS);
-            console.log("Memory Cache Hit");
-            c.set("meta", user);
-            return await next();
+            try {
+                const user = await verifyToken(c, token, kvJWKS);
+                MEMORY_CACHE_JWKS = kvJWKS; // Sync RAM
+                c.set("meta", user);
+                return await next();
+            }
+            catch (e) {
+                // Stale KV? Don't return next(), let it fall through to fetch
+                console.log("KV JWKS stale, fetching fresh...");
+            }
         }
 
         //fetch JSON Web Key Set
-        const JWKS_response = await fetch(`https://${c.env.SUPABASE_PROJECT_ID}.supabase.co/auth/v1/.well-known/jwks.json`,{
+        const JWKS_response = await fetch(`https://${c.env.SUPABASE_PROJECT_ID}.supabase.co/auth/v1/.well-known/jwks.json`, {
             method: "GET"
         });
-        if(!JWKS_response.ok) throw new Error("Failed to fetch fresh JWKS...");
+        if (!JWKS_response.ok) throw new Error("Failed to fetch fresh JWKS...");
 
         const freshJWKS = await JWKS_response.json();
         //cache in isolate memory

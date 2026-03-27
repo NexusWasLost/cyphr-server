@@ -1,6 +1,8 @@
 import { HTTPException } from "hono/http-exception";
 import { jwtVerify, createLocalJWKSet } from "jose";
 
+let MEMORY_CACHE_JWKS = null;
+
 //verify token and return custom payload
 async function verifyToken(c, token, JWKS) {
     //create a local JWK set from JWKS JSON
@@ -32,33 +34,36 @@ export const authMiddleware = async function (c, next) {
     const token = authHeader.split(" ")[1];
 
     try {
-        //check for JWKS in cache
-        const cachedJWKS = await c.env.API_CACHE.get("JWKS");
-        if (cachedJWKS) {
-            let KeySet = JSON.parse(cachedJWKS);
-            const customPayload = await verifyToken(c, token, KeySet);
-            c.set("meta", customPayload);
+        // --- LAYER 1: RAM (The 0ms Path) ---
+        if (MEMORY_CACHE_JWKS) {
+            const user = await verifyToken(c, token, MEMORY_CACHE_JWKS);
+            console.log("Memory Cache Hit");
+            c.set("meta", user);
             return await next();
         }
 
-        //fetch keys from this URL
-        // const JWKS_URL = `https://${c.env.SUPABASE_PROJECT_ID}.supabase.co/auth/v1/.well-known/jwks.json`;
-        // const JWKS = createRemoteJWKSet(new URL(JWKS_URL));
-        // console.log(JWKS);
+        // --- LAYER 2: KV (The ~15ms Path) ---
+        // 'json' type automatically handles parsing, which is faster/cleaner
+        const kvJWKS = await c.env.API_CACHE.get("JWKS", "json");
+        if (kvJWKS) {
+            MEMORY_CACHE_JWKS = kvJWKS; // Populate RAM for next request
+            const user = await verifyToken(c, token, kvJWKS);
+            console.log("Memory Cache Hit");
+            c.set("meta", user);
+            return await next();
+        }
 
         //fetch JSON Web Key Set
         const JWKS_response = await fetch(`https://${c.env.SUPABASE_PROJECT_ID}.supabase.co/auth/v1/.well-known/jwks.json`,{
             method: "GET"
         });
-        if(!JWKS_response.ok)
-            throw new Error("Failed to fetch JWKS...");
+        if(!JWKS_response.ok) throw new Error("Failed to fetch fresh JWKS...");
 
-        const JWKS = await JWKS_response.json();
-        console.log(JWKS);
-        // return c.json({"message": "end"}, 200); //this is for testing purpose !
-
-        //cache the JWKS
-        c.executionCtx.waitUntil(c.env.API_CACHE.put("JWKS", JSON.stringify(JWKS), {
+        const freshJWKS = await JWKS_response.json();
+        //cache in isolate memory
+        MEMORY_CACHE_JWKS = freshJWKS;
+        //cache the JWKS in KV
+        c.executionCtx.waitUntil(c.env.API_CACHE.put("JWKS", JSON.stringify(freshJWKS), {
             expirationTtl: 600
         }));
 
